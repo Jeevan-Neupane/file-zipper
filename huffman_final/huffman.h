@@ -19,4 +19,4 @@ struct Compare {
 Node* buildHuffmanTree(std::map<char, int>& freqMap);
 void buildCodeTable(Node* root, std::string code, std::map<char, std::string>& codeTable);
 void compressFile(const wxString& inputFilename, const wxString& outputFilename);
-void decompressLZ78(const std::vector<std::pair<int, char>>& compressedData);
+void decompressFile(const std::vector<std::pair<int, char>>& compressedData);

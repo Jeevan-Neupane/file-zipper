@@ -64,7 +64,7 @@ bool MyApp::OnInit() {
             // Decompress the first selected file
             wxString inputFile = fileQueue.dequeue();
             wxString outputFile = inputFile + ".decompressed"; // Modify output file name as desired
-            decompressFile(inputFile, outputFile);
+            //decompressFile(inputFile, outputFile);
         }
         });
 
@@ -99,7 +99,7 @@ bool MyApp::OnInit() {
             else { // Decompress
                 // Modify output file name to have .txt extension
                 outputFile = inputFile + ".txt";
-                decompressFile(inputFile, outputFile);
+                //decompressFile(inputFile, outputFile);
             }
 
             // Extract filename from the full path
