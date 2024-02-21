@@ -134,55 +134,71 @@ void compressFile(const wxString& inputFilename, const wxString& outputFilename)
 }
 
 void decompressFile(const wxString& inputFilename, const wxString& outputFilename) {
-	// Open input file
-	ifstream inputFile(inputFilename.ToStdString(), ios::binary);
-	if (!inputFile.is_open()) {
-		wxMessageBox("Failed to open input file!", "Error", wxOK | wxICON_ERROR);
-		return;
-	}
+    // Read compressed data from the input file
+    std::ifstream inputFile(inputFilename.ToStdString(), std::ios::binary);
+    if (!inputFile.is_open()) {
+        std::cerr << "Failed to open input file for reading!" << std::endl;
+        return;
+    }
+     wxMessageBox("Please select files to compress or decompressessedesep.", "Error", wxOK | wxICON_ERROR);
+    std::vector<std::pair<int, char>> compressedData;
+    int index;
+    char character;
+    while (inputFile.read(reinterpret_cast<char*>(&index), sizeof(int)) && inputFile.get(character)) {
+        compressedData.push_back({ index, character });
+    }
+    inputFile.close();
 
-	// Read Huffman tree from input file
-	map<char, int> freqMap;
-	char ch;
-	while (inputFile.get(ch) && ch != '\0') {
-		int freq;
-		inputFile.read(reinterpret_cast<char*>(&freq), sizeof(int));
-		freqMap[ch] = freq;
-	}
+    // Reconstruct Huffman tree from the frequency map
+    std::map<char, int> freqMap;
+    for (const auto& entry : compressedData) {
+        freqMap[entry.second]++;
+    }
+    Node* root = buildHuffmanTree(freqMap);
 
-	// Build Huffman tree from frequencies
-	Node* root = buildHuffmanTree(freqMap);
+    // Decode LZ78 compressed data using Huffman coding
+    std::string decodedData;
+    Node* current = root;
+    for (const auto& entry : compressedData) {
+        int index = entry.first;
+        char character = entry.second;
 
-	// Open output file
-	ofstream outputFile(outputFilename.ToStdString(), ios::binary);
-	if (!outputFile.is_open()) {
-		wxMessageBox("Failed to open output file!", "Error", wxOK | wxICON_ERROR);
-		return;
-	}
+        // Perform LZ78 decoding
+        std::string phrase;
+        if (index != 0) {
+            phrase = decodedData.substr(index - 1, 1);
+        }
 
-	// Decode input file using Huffman coding and write to output file
-	Node* current = root;
-	while (inputFile.get(ch)) {
-		for (int i = 7; i >= 0; i--) {
-			if ((ch >> i) & 1)
-				current = current->right;
-			else
-				current = current->left;
+        // Append decoded character to the result
+        decodedData += phrase + character;
 
-			if (current->left == nullptr && current->right == nullptr) {
-				outputFile.put(current->data);
-				current = root;
-			}
-		}
-	}
+        // Traverse Huffman tree to decode LZ78 output
+        current = root;
+        for (char bit : phrase) {
+            if (bit == '0') {
+                current = current->left;
+            }
+            else {
+                current = current->right;
+            }
+        }
+        if (!current->left && !current->right) { // Leaf node
+            decodedData += current->data;
+            current = root; // Reset current node
+        }
+    }
 
-	// Close files
-	inputFile.close();
-	outputFile.close();
+    // Write decompressed data to file
+    std::ofstream outputFile(outputFilename.ToStdString(), std::ios::binary);
+    if (!outputFile.is_open()) {
+        std::cerr << "Failed to open output file for writing!" << std::endl;
+        return;
+    }
+    outputFile << decodedData;
+    outputFile.close();
 
-	// Free memory
-	// TODO: Implement function to delete Huffman tree nodes
+    // Free memory
+    // TODO: Implement function to delete Huffman tree nodes
 }
-
 
 

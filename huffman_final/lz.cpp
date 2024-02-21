@@ -4,11 +4,7 @@
 #include <vector>
 #include <map>
 
-LZ78::LZ78() {
-    // Constructor
-    // Initialize dictionary with empty string
-    dictionary[""] = 0;
-}
+
 
 std::vector<std::pair<int, char>> LZ78::compress(const std::string& input) {
     std::vector<std::pair<int, char>> compressedData;
@@ -32,23 +28,28 @@ std::vector<std::pair<int, char>> LZ78::compress(const std::string& input) {
     return compressedData;
 }
 
-std::string LZ78::decompress(const std::vector<std::pair<int, char>>& compressedData) {
+std::string decompress(const std::vector<std::pair<int, char>>& compressedData) {
+    std::unordered_map<int, std::string> dictionary;
+    dictionary[0] = "";
+
     std::string decompressedData;
+    std::string phrase;
 
     for (const auto& entry : compressedData) {
         int index = entry.first;
         char ch = entry.second;
 
-        std::string phrase;
-        if (index != 0) {
-            phrase = dictionary.rbegin()->first; // Get the last entry in the dictionary
+        if (index == 0) {
+            decompressedData += ch;
+            phrase = ch;
         }
-        phrase += ch;
+        else {
+            std::string entryStr = dictionary[index] + ch;
+            decompressedData += entryStr;
+            phrase = entryStr;
+        }
 
-        decompressedData += phrase;
-
-        // Add new entry to dictionary
-        dictionary[phrase] = dictionary.size();
+        dictionary[dictionary.size()] = phrase;
     }
 
     return decompressedData;

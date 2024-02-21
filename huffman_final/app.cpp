@@ -64,7 +64,14 @@ bool MyApp::OnInit() {
             // Decompress the first selected file
             wxString inputFile = fileQueue.dequeue();
             wxString outputFile = inputFile + ".decompressed"; // Modify output file name as desired
-            //decompressFile(inputFile, outputFile);
+
+            // Convert wxString to std::string
+            std::string inputFilePath = inputFile.ToStdString();
+            std::string outputFilePath = outputFile.ToStdString();
+
+            // Call decompressFile with std::string file paths
+            decompressFile(inputFilePath, outputFilePath);
+
         }
         });
 
@@ -81,7 +88,8 @@ bool MyApp::OnInit() {
     // Inside the startButton event handler
     startButton->Bind(wxEVT_BUTTON, [this, operationRadioBox, compressedFilesListBox](wxCommandEvent& event) {
         if (fileQueue.isEmpty()) {
-            wxMessageBox("Please select files to compress or decompress.", "Error", wxOK | wxICON_ERROR);
+
+            wxMessageBox("Please select files to compress or decompressessedesep.", "Error", wxOK | wxICON_ERROR);
             return;
         }
 
@@ -99,7 +107,7 @@ bool MyApp::OnInit() {
             else { // Decompress
                 // Modify output file name to have .txt extension
                 outputFile = inputFile + ".txt";
-                //decompressFile(inputFile, outputFile);
+                decompressFile(inputFile, outputFile);
             }
 
             // Extract filename from the full path

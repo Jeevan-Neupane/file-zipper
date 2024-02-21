@@ -3,10 +3,15 @@
 #include <string>
 #include <vector>
 #include <map>
+#include<unordered_map>
 
 class LZ78 {
+
 public:
-    LZ78();
+    
+    LZ78() {
+       
+    }
 
     // Function to compress input data using LZ78 algorithm
     std::vector<std::pair<int, char>> compress(const std::string& input);
