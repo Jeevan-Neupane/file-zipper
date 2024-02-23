@@ -140,7 +140,7 @@ void decompressFile(const wxString& inputFilename, const wxString& outputFilenam
         std::cerr << "Failed to open input file for reading!" << std::endl;
         return;
     }
-     wxMessageBox("Please select files to compress or decompressessedesep.", "Error", wxOK | wxICON_ERROR);
+   
     std::vector<std::pair<int, char>> compressedData;
     int index;
     char character;
