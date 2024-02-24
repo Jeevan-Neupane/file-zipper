@@ -6,6 +6,7 @@
 
 
 
+
 std::vector<std::pair<int, char>> LZ78::compress(const std::string& input) {
     std::vector<std::pair<int, char>> compressedData;
 

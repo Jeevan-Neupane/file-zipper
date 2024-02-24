@@ -15,6 +15,7 @@ Node* buildHuffmanTree(map<char, int>& freqMap) {
     for (auto& pair : freqMap) {
         pq.push(new Node(pair.first, pair.second));
     }
+    wxMessageBox("Size of priority queue: " + std::to_string(pq.size()), "Debug Info", wxOK | wxICON_INFORMATION);
 
     while (pq.size() > 1) {
         Node* left = pq.top(); pq.pop();
@@ -39,22 +40,7 @@ void buildCodeTable(Node* root, string code, map<char, string>& codeTable) {
     buildCodeTable(root->right, code + "1", codeTable);
 }
 
-void compressFile(const wxString& inputFilename, const wxString& outputFilename) {
-    // Perform LZ78 compression on the input file
-    LZ78 lz78;
-    ifstream inputFile(inputFilename.ToStdString(), ios::binary);
-    if (!inputFile.is_open()) {
-        wxMessageBox("Failed to open input file!", "Error", wxOK | wxICON_ERROR);
-        return;
-    }
-
-    // Read input file data
-    string inputData((istreambuf_iterator<char>(inputFile)), istreambuf_iterator<char>());
-    inputFile.close();
-
-    // Compress data using LZ78
-    std::vector<std::pair<int, char>> lz78CompressedData = lz78.compress(inputData);
-
+void saveLZ78CompressedData(const std::vector<std::pair<int, char>>& lz78CompressedData, const wxString& outputFilename) {
     // Open output file for LZ78 compressed data
     ofstream lz78OutputFile(outputFilename.ToStdString() + ".lz78", ios::binary);
     if (!lz78OutputFile.is_open()) {
@@ -70,27 +56,9 @@ void compressFile(const wxString& inputFilename, const wxString& outputFilename)
 
     // Close output file for LZ78 compressed data
     lz78OutputFile.close();
+}
 
-    // Calculate frequency of characters in LZ78 compressed data
-    map<char, int> freqMap;
-    for (const auto& entry : lz78CompressedData) {
-        freqMap[entry.second]++;
-    }
-
-    // Build Huffman tree
-    Node* root = buildHuffmanTree(freqMap);
-
-    // Build code table
-    map<char, string> codeTable;
-    buildCodeTable(root, "", codeTable);
-
-    // Open output file for Huffman compressed data
-    ofstream outputFile(outputFilename.ToStdString(), ios::binary);
-    if (!outputFile.is_open()) {
-        wxMessageBox("Failed to open output file for Huffman compressed data!", "Error", wxOK | wxICON_ERROR);
-        return;
-    }
-
+void writeHuffmanTreeToFile(const map<char, int>& freqMap, ofstream& outputFile) {
     // Write Huffman tree to output file (for decompression)
     // Format: [Character (1 byte)][Frequency (4 bytes)]
     for (auto& pair : freqMap) {
@@ -98,11 +66,15 @@ void compressFile(const wxString& inputFilename, const wxString& outputFilename)
         outputFile.write(reinterpret_cast<const char*>(&pair.second), sizeof(int));
     }
     outputFile.put('\0'); // Mark end of tree
+}
 
+void writeEncodedDataToFile(const std::vector<std::pair<int, char>>& lz78CompressedData, const map<char, string>& codeTable, ofstream& outputFile) {
     // Encode LZ78 compressed data using Huffman coding and write to output file
     string buffer;
     for (const auto& entry : lz78CompressedData) {
-        buffer += codeTable[entry.second];
+        char character = entry.second;
+        string code = codeTable.at(character); // Retrieve Huffman code for the character
+        buffer += code;
         while (buffer.length() >= 8) {
             unsigned char byte = 0;
             for (int i = 0; i < 8; i++) {
@@ -125,6 +97,38 @@ void compressFile(const wxString& inputFilename, const wxString& outputFilename)
         byte <<= padding;
         outputFile.put(byte);
     }
+}
+
+
+void compressLZ78WithHuffman(const std::vector<std::pair<int, char>>& lz78CompressedData, const wxString& outputFilename) {
+    // Calculate frequency of characters in LZ78 compressed data
+    map<char, int> freqMap;
+    for (const auto& entry : lz78CompressedData) {
+        freqMap[entry.second]++;
+    }
+
+    // Build Huffman tree
+    Node* root = buildHuffmanTree(freqMap);
+
+    // Build code table
+    map<char, string> codeTable;
+    buildCodeTable(root, "", codeTable);
+
+    // Append ".lh" extension for Huffman compressed data file
+    wxString huffmanOutputFilename = outputFilename;
+
+    // Open output file for Huffman compressed data
+    ofstream outputFile(huffmanOutputFilename.ToStdString(), ios::binary);
+    if (!outputFile.is_open()) {
+        wxMessageBox("Failed to open output file for Huffman compressed data!", "Error", wxOK | wxICON_ERROR);
+        return;
+    }
+
+    // Write Huffman tree to output file
+    writeHuffmanTreeToFile(freqMap, outputFile);
+
+    // Encode LZ78 compressed data using Huffman coding and write to output file
+    writeEncodedDataToFile(lz78CompressedData, codeTable, outputFile);
 
     // Close output file for Huffman compressed data
     outputFile.close();
@@ -133,72 +137,123 @@ void compressFile(const wxString& inputFilename, const wxString& outputFilename)
     // TODO: Implement function to delete Huffman tree nodes
 }
 
-void decompressFile(const wxString& inputFilename, const wxString& outputFilename) {
-    // Read compressed data from the input file
-    std::ifstream inputFile(inputFilename.ToStdString(), std::ios::binary);
+
+
+void compressFile(const wxString& inputFilename, const wxString& outputFilename) {
+    // Perform LZ78 compression on the input file
+    LZ78 lz78;
+    ifstream inputFile(inputFilename.ToStdString(), ios::binary);
     if (!inputFile.is_open()) {
-        std::cerr << "Failed to open input file for reading!" << std::endl;
+        wxMessageBox("Failed to open input file!", "Error", wxOK | wxICON_ERROR);
         return;
     }
-   
-    std::vector<std::pair<int, char>> compressedData;
-    int index;
-    char character;
-    while (inputFile.read(reinterpret_cast<char*>(&index), sizeof(int)) && inputFile.get(character)) {
-        compressedData.push_back({ index, character });
-    }
+
+    // Read input file data
+    string inputData((istreambuf_iterator<char>(inputFile)), istreambuf_iterator<char>());
     inputFile.close();
 
-    // Reconstruct Huffman tree from the frequency map
-    std::map<char, int> freqMap;
-    for (const auto& entry : compressedData) {
-        freqMap[entry.second]++;
+    // Compress data using LZ78
+    std::vector<std::pair<int, char>> lz78CompressedData = lz78.compress(inputData);
+
+    // Save LZ78 compressed data to a file
+    //saveLZ78CompressedData(lz78CompressedData, outputFilename);
+
+    // Perform Huffman compression on the LZ78 compressed data and save to output file
+    compressLZ78WithHuffman(lz78CompressedData, outputFilename);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Node* readHuffmanTreeFromFile(ifstream& inputFile) {
+    // Read Huffman tree from input file
+    // Format: [Character (1 byte)][Frequency (4 bytes)]
+    map<char, int> freqMap;
+    char character;
+    int frequency;
+
+    while (true) {
+        inputFile.get(character);
+        if (character == '\0') {
+            break; // End of tree marker
+        }
+        inputFile.read(reinterpret_cast<char*>(&frequency), sizeof(int));
+        freqMap[character] = frequency;
     }
-    Node* root = buildHuffmanTree(freqMap);
 
-    // Decode LZ78 compressed data using Huffman coding
-    std::string decodedData;
-    Node* current = root;
-    for (const auto& entry : compressedData) {
-        int index = entry.first;
-        char character = entry.second;
+    // Rebuild Huffman tree
+    return buildHuffmanTree(freqMap);
+}
 
-        // Perform LZ78 decoding
-        std::string phrase;
-        if (index != 0) {
-            phrase = decodedData.substr(index - 1, 1);
-        }
 
-        // Append decoded character to the result
-        decodedData += phrase + character;
-
-        // Traverse Huffman tree to decode LZ78 output
-        current = root;
-        for (char bit : phrase) {
-            if (bit == '0') {
-                current = current->left;
-            }
-            else {
-                current = current->right;
-            }
-        }
-        if (!current->left && !current->right) { // Leaf node
-            decodedData += current->data;
-            current = root; // Reset current node
-        }
-    }
-
-    // Write decompressed data to file
-    std::ofstream outputFile(outputFilename.ToStdString(), std::ios::binary);
+void decodeHuffmanDataToFile(ifstream& inputFile, Node* root, const wxString& outputFilename) {
+    // Open output file for decompressed data
+    ofstream outputFile(outputFilename.ToStdString(), ios::binary);
     if (!outputFile.is_open()) {
-        std::cerr << "Failed to open output file for writing!" << std::endl;
+        wxMessageBox("Failed to open output file for decompressed data!", "Error", wxOK | wxICON_ERROR);
         return;
     }
-    outputFile << decodedData;
+
+    Node* currentNode = root;
+    char bit;
+    while (inputFile.get(bit)) {
+        if (bit == '0') {
+            currentNode = currentNode->left;
+        } else {
+            currentNode = currentNode->right;
+        }
+
+        if (currentNode->left == nullptr && currentNode->right == nullptr) {
+            // Leaf node reached, write character to output file
+            outputFile.put(currentNode->data);
+            currentNode = root; // Reset to root for next character
+        }
+    }
+
+    // Close output file
     outputFile.close();
+}
+void decompressFile(const wxString& inputFilename, const wxString& outputFilename) {
+    // Open input file for Huffman compressed data
+    ifstream inputFile(inputFilename.ToStdString(), ios::binary);
+    if (!inputFile.is_open()) {
+        wxMessageBox("Failed to open input file for Huffman compressed data!", "Error", wxOK | wxICON_ERROR);
+        return;
+    }
+
+    // Read Huffman tree from input file
+    Node* root = readHuffmanTreeFromFile(inputFile);
+
+    // Decode Huffman-encoded data and save to output file
+    decodeHuffmanDataToFile(inputFile, root, outputFilename);
+
+    // Close input file
+    inputFile.close();
 
     // Free memory
     // TODO: Implement function to delete Huffman tree nodes
 }
-
 

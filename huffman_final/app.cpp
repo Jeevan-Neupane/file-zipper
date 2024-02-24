@@ -45,33 +45,32 @@ bool MyApp::OnInit() {
 
     // Bind events
     browseInputFileButton->Bind(wxEVT_BUTTON, [this, inputFileTextCtrl, operationRadioBox](wxCommandEvent& event) {
-        wxFileDialog openFileDialog(nullptr, _("Open File"), "", "", "All files (*.*)|*.*", wxFD_OPEN | wxFD_FILE_MUST_EXIST | wxFD_MULTIPLE);
+        wxString wildcard;
+        if (operationRadioBox->GetSelection() == 0) {
+            // Compress: Allow only .txt files
+            wildcard = "Text files (*.txt)|*.txt";
+        }
+        else {
+            // Decompress: Allow only .lh files
+            wildcard = "Compressed files (*.lh)|*.lh";
+        }
+
+        wxFileDialog openFileDialog(nullptr, _("Open File"), "", "", wildcard, wxFD_OPEN | wxFD_FILE_MUST_EXIST);
         if (openFileDialog.ShowModal() == wxID_CANCEL)
             return;
 
-        wxArrayString files;
-        openFileDialog.GetFilenames(files);
+        wxString filePath = openFileDialog.GetPath();
 
-        // Enqueue all selected files into the file queue
-        for (const auto& file : files) {
-            fileQueue.enqueue(file);
-            // Append the selected file to the text control
-            inputFileTextCtrl->AppendText(file + "\n");
-        }
+        // Set the selected file path to the input file text control
+        inputFileTextCtrl->SetValue(filePath);
 
-        // Check if the operation is to decompress and if the queue is not empty
-        if (operationRadioBox->GetSelection() == 1 && !fileQueue.isEmpty()) {
-            // Decompress the first selected file
-            wxString inputFile = fileQueue.dequeue();
+        if (operationRadioBox->GetSelection() == 1) {
+            // Decompress: You can handle the decompression here if needed
+            wxString inputFile = filePath;
             wxString outputFile = inputFile + ".decompressed"; // Modify output file name as desired
 
-            // Convert wxString to std::string
-            std::string inputFilePath = inputFile.ToStdString();
-            std::string outputFilePath = outputFile.ToStdString();
-
-            // Call decompressFile with std::string file paths
-            decompressFile(inputFilePath, outputFilePath);
-
+            // Call decompressFile with wxString file paths
+            // decompressFile(inputFile, outputFile);
         }
         });
 
@@ -86,42 +85,38 @@ bool MyApp::OnInit() {
     sizer->Add(compressedFilesListBox, 1, wxEXPAND | wxALL, 5);
 
     // Inside the startButton event handler
-    startButton->Bind(wxEVT_BUTTON, [this, operationRadioBox, compressedFilesListBox](wxCommandEvent& event) {
-        if (fileQueue.isEmpty()) {
+    startButton->Bind(wxEVT_BUTTON, [this, operationRadioBox, compressedFilesListBox, inputFileTextCtrl](wxCommandEvent& event) {
+        wxString inputFile = inputFileTextCtrl->GetValue();
+        wxString outputFile;
 
-            wxMessageBox("Please select files to compress or decompressessedesep.", "Error", wxOK | wxICON_ERROR);
+        if (inputFile.IsEmpty()) {
+            wxMessageBox("Please select a file.", "Error", wxOK | wxICON_ERROR);
             return;
         }
+
+        if (operationRadioBox->GetSelection() == 0) { // Compress
+            outputFile = inputFile + ".lh"; // Modify output file name as desired
+            compressFile(inputFile, outputFile);
+        }
+        else { // Decompress
+            // Modify output file name to have .txt extension
+            outputFile = inputFile + ".txt";
+            decompressFile(inputFile, outputFile);
+        }
+
+        // Extract filename from the full path
+        wxFileName outputFileName(outputFile);
+        wxString fileName = outputFileName.GetFullName();
 
         // Clear the list box before compressing/decompressing new files
         compressedFilesListBox->Clear();
 
-        while (!fileQueue.isEmpty()) {
-            wxString inputFile = fileQueue.dequeue();
-            wxString outputFile;
-
-            if (operationRadioBox->GetSelection() == 0) { // Compress
-                outputFile = inputFile + ".compressed"; // Modify output file name as desired
-                compressFile(inputFile, outputFile);
-            }
-            else { // Decompress
-                // Modify output file name to have .txt extension
-                outputFile = inputFile + ".txt";
-                decompressFile(inputFile, outputFile);
-            }
-
-            // Extract filename from the full path
-            wxFileName outputFileName(outputFile);
-            wxString fileName = outputFileName.GetFullName();
-
-            // Append the compressed/decompressed file name to the list box
-            compressedFilesListBox->Append(fileName);
-        }
+        // Append the compressed/decompressed file name to the list box
+        compressedFilesListBox->Append(fileName);
         });
 
     frame->Show(true);
     return true;
 }
-
 
 wxIMPLEMENT_APP(MyApp);
