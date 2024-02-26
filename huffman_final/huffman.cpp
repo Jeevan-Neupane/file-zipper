@@ -65,7 +65,8 @@ void writeHuffmanTreeToFile(const map<char, int>& freqMap, ofstream& outputFile)
         outputFile.put(pair.first);
         outputFile.write(reinterpret_cast<const char*>(&pair.second), sizeof(int));
     }
-    outputFile.put('\0'); // Mark end of tree
+    outputFile.put('\0');
+    // Mark end of tree
 }
 
 void writeEncodedDataToFile(const std::vector<std::pair<int, char>>& lz78CompressedData, const map<char, string>& codeTable, ofstream& outputFile) {
@@ -118,7 +119,7 @@ void compressLZ78WithHuffman(const std::vector<std::pair<int, char>>& lz78Compre
     wxString huffmanOutputFilename = outputFilename;
 
     // Open output file for Huffman compressed data
-    ofstream outputFile(huffmanOutputFilename.ToStdString(), ios::binary);
+    ofstream outputFile(huffmanOutputFilename.ToStdString());
     if (!outputFile.is_open()) {
         wxMessageBox("Failed to open output file for Huffman compressed data!", "Error", wxOK | wxICON_ERROR);
         return;
@@ -151,9 +152,12 @@ void compressFile(const wxString& inputFilename, const wxString& outputFilename)
     // Read input file data
     string inputData((istreambuf_iterator<char>(inputFile)), istreambuf_iterator<char>());
     inputFile.close();
-
+   
     // Compress data using LZ78
     std::vector<std::pair<int, char>> lz78CompressedData = lz78.compress(inputData);
+    
+
+
 
     // Save LZ78 compressed data to a file
     //saveLZ78CompressedData(lz78CompressedData, outputFilename);
@@ -189,22 +193,15 @@ void compressFile(const wxString& inputFilename, const wxString& outputFilename)
 
 
 Node* readHuffmanTreeFromFile(ifstream& inputFile) {
-    // Read Huffman tree from input file
-    // Format: [Character (1 byte)][Frequency (4 bytes)]
     map<char, int> freqMap;
-    char character;
-    int frequency;
-
-    while (true) {
-        inputFile.get(character);
-        if (character == '\0') {
-            break; // End of tree marker
-        }
-        inputFile.read(reinterpret_cast<char*>(&frequency), sizeof(int));
-        freqMap[character] = frequency;
+    char ch;
+    while (inputFile.get(ch) && ch != '\0') {
+        int freq;
+        inputFile.read(reinterpret_cast<char*>(&freq), sizeof(int));
+        freqMap[ch] = freq;
     }
 
-    // Rebuild Huffman tree
+    // Build Huffman tree from frequencies
     return buildHuffmanTree(freqMap);
 }
 
