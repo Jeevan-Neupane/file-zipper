@@ -3,20 +3,20 @@
 #include <map>
 #include <fstream>
 
-struct Node {
+struct HuffmanNode {
     char data;
     int freq;
-    Node* left;
-    Node* right;
+    HuffmanNode* left;
+    HuffmanNode* right;
 
-    Node(char data, int freq);
+    HuffmanNode(char data, int freq);
 };
 
 struct Compare {
-    bool operator()(Node* a, Node* b) const;
+    bool operator()(HuffmanNode* a, HuffmanNode* b) const;
 };
 
-Node* buildHuffmanTree(std::map<char, int>& freqMap);
-void buildCodeTable(Node* root, std::string code, std::map<char, std::string>& codeTable);
+HuffmanNode* buildHuffmanTree(std::map<char, int>& freqMap);
+void buildCodeTable(HuffmanNode* root, std::string code, std::map<char, std::string>& codeTable);
 void compressFile(const wxString& inputFilename, const wxString& outputFilename);
 void decompressFile(const wxString& inputFilename, const wxString& outputFilename);

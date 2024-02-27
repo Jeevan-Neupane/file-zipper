@@ -8,50 +8,44 @@
 
 
 std::vector<std::pair<int, char>> LZ78::compress(const std::string& input) {
-    std::vector<std::pair<int, char>> compressedData;
+    std::unordered_map<std::string, int> dictionary;
+    std::vector<std::pair<int, char>> compressed_data;
+    std::string current = "";
 
-    std::string phrase;
     for (char ch : input) {
-        phrase += ch;
-        if (dictionary.find(phrase) == dictionary.end()) {
-            // If phrase not found in dictionary, add it
-            dictionary[phrase] = dictionary.size();
-            compressedData.push_back(std::make_pair(dictionary[phrase.substr(0, phrase.length() - 1)], ch));
-            phrase.clear();
+        current += ch;
+        if (dictionary.find(current) == dictionary.end()) {
+            if (current.substr(0, current.size() - 1).length() > 0) {
+                compressed_data.push_back({ dictionary[current.substr(0, current.size() - 1)], current.back() });
+            }
+            else {
+                compressed_data.push_back({ 0, current.back() });
+            }
+            dictionary[current] = static_cast<int>(dictionary.size()) + 1;
+            current = "";
         }
     }
 
-    // Handle the last phrase
-    if (!phrase.empty()) {
-        compressedData.push_back(std::make_pair(dictionary[phrase], '\0')); // Use null character to denote end of phrase
+    if (!current.empty()) {
+        compressed_data.push_back({ dictionary[current.substr(0, current.size() - 1)], current.back() });
     }
 
-    return compressedData;
+    return compressed_data;
 }
 
 std::string decompress(const std::vector<std::pair<int, char>>& compressedData) {
     std::unordered_map<int, std::string> dictionary;
-    dictionary[0] = "";
-
-    std::string decompressedData;
-    std::string phrase;
+    std::string result = "";
 
     for (const auto& entry : compressedData) {
-        int index = entry.first;
+        int code = entry.first;
         char ch = entry.second;
 
-        if (index == 0) {
-            decompressedData += ch;
-            phrase = ch;
-        }
-        else {
-            std::string entryStr = dictionary[index] + ch;
-            decompressedData += entryStr;
-            phrase = entryStr;
-        }
-
-        dictionary[dictionary.size()] = phrase;
+        std::string phrase = dictionary[code];
+        std::string new_entry = phrase + ch;
+        result += new_entry;
+        dictionary[static_cast<int>(dictionary.size())] = new_entry;
     }
 
-    return decompressedData;
+    return result;
 }

@@ -3,24 +3,24 @@
 #include "lz.h"
 using namespace std;
 
-Node::Node(char data, int freq) : data(data), freq(freq), left(nullptr), right(nullptr) {}
+HuffmanNode::HuffmanNode(char data, int freq) : data(data), freq(freq), left(nullptr), right(nullptr) {}
 
-bool Compare::operator()(Node* a, Node* b) const {
+bool Compare::operator()(HuffmanNode* a, HuffmanNode* b) const {
     return a->freq > b->freq;
 }
 
-Node* buildHuffmanTree(map<char, int>& freqMap) {
-    priority_queue<Node*, vector<Node*>, Compare> pq;
+HuffmanNode* buildHuffmanTree(map<char, int>& freqMap) {
+    priority_queue<HuffmanNode*, vector<HuffmanNode*>, Compare> pq;
 
     for (auto& pair : freqMap) {
-        pq.push(new Node(pair.first, pair.second));
+        pq.push(new HuffmanNode(pair.first, pair.second));
     }
     wxMessageBox("Size of priority queue: " + std::to_string(pq.size()), "Debug Info", wxOK | wxICON_INFORMATION);
 
     while (pq.size() > 1) {
-        Node* left = pq.top(); pq.pop();
-        Node* right = pq.top(); pq.pop();
-        Node* parent = new Node('$', left->freq + right->freq);
+        HuffmanNode* left = pq.top(); pq.pop();
+        HuffmanNode* right = pq.top(); pq.pop();
+        HuffmanNode* parent = new HuffmanNode('$', left->freq + right->freq);
         parent->left = left;
         parent->right = right;
         pq.push(parent);
@@ -29,7 +29,7 @@ Node* buildHuffmanTree(map<char, int>& freqMap) {
     return pq.top();
 }
 
-void buildCodeTable(Node* root, string code, map<char, string>& codeTable) {
+void buildCodeTable(HuffmanNode* root, string code, map<char, string>& codeTable) {
     if (!root)
         return;
 
@@ -109,7 +109,7 @@ void compressLZ78WithHuffman(const std::vector<std::pair<int, char>>& lz78Compre
     }
 
     // Build Huffman tree
-    Node* root = buildHuffmanTree(freqMap);
+    HuffmanNode* root = buildHuffmanTree(freqMap);
 
     // Build code table
     map<char, string> codeTable;
@@ -192,7 +192,7 @@ void compressFile(const wxString& inputFilename, const wxString& outputFilename)
 
 
 
-Node* readHuffmanTreeFromFile(ifstream& inputFile) {
+HuffmanNode* readHuffmanTreeFromFile(ifstream& inputFile) {
     map<char, int> freqMap;
     char ch;
     while (inputFile.get(ch) && ch != '\0') {
@@ -206,7 +206,7 @@ Node* readHuffmanTreeFromFile(ifstream& inputFile) {
 }
 
 
-void decodeHuffmanDataToFile(ifstream& inputFile, Node* root, const wxString& outputFilename) {
+void decodeHuffmanDataToFile(ifstream& inputFile, HuffmanNode* root, const wxString& outputFilename) {
     // Open output file for decompressed data
     ofstream outputFile(outputFilename.ToStdString(), ios::binary);
     if (!outputFile.is_open()) {
@@ -214,7 +214,7 @@ void decodeHuffmanDataToFile(ifstream& inputFile, Node* root, const wxString& ou
         return;
     }
 
-    Node* currentNode = root;
+    HuffmanNode* currentNode = root;
     char bit;
     while (inputFile.get(bit)) {
         if (bit == '0') {
@@ -242,7 +242,7 @@ void decompressFile(const wxString& inputFilename, const wxString& outputFilenam
     }
 
     // Read Huffman tree from input file
-    Node* root = readHuffmanTreeFromFile(inputFile);
+    HuffmanNode* root = readHuffmanTreeFromFile(inputFile);
 
     // Decode Huffman-encoded data and save to output file
     decodeHuffmanDataToFile(inputFile, root, outputFilename);
