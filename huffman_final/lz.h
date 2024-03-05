@@ -8,9 +8,9 @@
 class LZ78 {
 
 public:
-    
+
     LZ78() {
-       
+
     }
 
     // Function to compress input data using LZ78 algorithm

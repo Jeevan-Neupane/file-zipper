@@ -101,34 +101,6 @@ void writeEncodedDataToFile(const std::vector<std::pair<int, char>>& lz78Compres
 }
 
 
-std::vector<std::pair<int, char>> lz78_compress(const std::string& input_string) {
-    std::unordered_map<std::string, int> dictionary;
-    std::vector<std::pair<int, char>> compressed_data;
-    std::string current = "";
-
-    for (char ch : input_string) {
-        current += ch;
-        if (dictionary.find(current) == dictionary.end()) {
-            if (current.substr(0, current.size() - 1).length() > 0) {
-                compressed_data.push_back({ dictionary[current.substr(0, current.size() - 1)], current.back() });
-            }
-            else {
-                compressed_data.push_back({ 0, current.back() });
-            }
-            dictionary[current] = static_cast<int>(dictionary.size()) + 1;
-            current = "";
-        }
-    }
-
-    if (!current.empty()) {
-        compressed_data.push_back({ dictionary[current.substr(0, current.size() - 1)], current.back() });
-    }
-
-    return compressed_data;
-}
-
-
-
 void compressLZ78WithHuffman(const std::vector<std::pair<int, char>>& lz78CompressedData, const wxString& outputFilename) {
     // Calculate frequency of characters in LZ78 compressed data
     map<char, int> freqMap;
@@ -180,10 +152,10 @@ void compressFile(const wxString& inputFilename, const wxString& outputFilename)
     // Read input file data
     string inputData((istreambuf_iterator<char>(inputFile)), istreambuf_iterator<char>());
     inputFile.close();
-   
+
     // Compress data using LZ78
     std::vector<std::pair<int, char>> lz78CompressedData = lz78.compress(inputData);
-    
+
 
 
 
@@ -247,7 +219,8 @@ void decodeHuffmanDataToFile(ifstream& inputFile, HuffmanNode* root, const wxStr
     while (inputFile.get(bit)) {
         if (bit == '0') {
             currentNode = currentNode->left;
-        } else {
+        }
+        else {
             currentNode = currentNode->right;
         }
 
